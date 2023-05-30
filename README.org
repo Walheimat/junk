@@ -1,0 +1,29 @@
+* junk
+
+#+BEGIN_HTML
+<a href='https://coveralls.io/github/Walheimat/junk?branch=trunk'>
+    <img
+        src='https://coveralls.io/repos/github/Walheimat/junk/badge.svg?branch=trunk'
+        alt='Coverage Status'
+    />
+</a>
+#+END_HTML
+
+=junk= allows you to group packages as an expansion pack that can be
+installed together and optionally with so-called extras.
+
+It grew out of my [[https://github.com/Walheimat/wal-emacs][configuration]] and therefore is currently still
+heavily geared towards my usage.
+
+** Installation
+
+If you use =straight= or =quelpa=, you know what to do.
+
+If you're on Emacs >29, I recommend using =package-vc-install=.
+
+Alternatively, provided you have Cask, you can install the package
+with =make install=.
+
+** Usage
+
+Please have a look, again, at my [[https://github.com/Walheimat/wal-emacs][configuration]] for usage examples.
