@@ -117,6 +117,20 @@ Apply MAPPER to packages if set."
       (mapconcat (lambda (it) (format "%s" it)) package-list ", ")
     ""))
 
+(defun junk--parts (pack)
+  "Get the parts from expansion pack PACK.
+
+Returns a list of (PACKAGES EXTRAS RECIPES DOCS)."
+  (let ((p (cdr pack)))
+
+    (list
+     (plist-get p :packages)
+     (plist-get p :extras)
+     (plist-get p :recipes)
+     (plist-get p :docs))))
+
+;; `marginalia' integration
+
 (defun junk-annotate (candidate)
   "Annotate CANDIDATE expansion pack."
   (let* ((item (assoc (intern candidate) junk-expansion-packs))
@@ -133,6 +147,7 @@ Apply MAPPER to packages if set."
 
 ;; API
 
+;;;###autoload
 (cl-defmacro junk-expand (name docs &key packages extras recipes)
   "Define an expansion pack of PACKAGES under NAME.
 
@@ -142,18 +157,6 @@ Documented using DOCS."
   `(add-to-list
     'junk-expansion-packs
     '(,name . (:packages ,packages :extras ,extras :docs ,docs :recipes ,recipes))))
-
-(defun junk--parts (pack)
-  "Get the parts from expansion pack PACK.
-
-Returns a list of (PACKAGES EXTRAS RECIPES DOCS)."
-  (let ((p (cdr pack)))
-
-    (list
-     (plist-get p :packages)
-     (plist-get p :extras)
-     (plist-get p :recipes)
-     (plist-get p :docs))))
 
 (provide 'junk)
 
