@@ -2,6 +2,7 @@
 (source melpa)
 
 (development
+ (depends-on "sulphur" :git "https://github.com/Walheimat/sulphur" :branch "trunk")
  (depends-on "ert-runner")
  (depends-on "undercover")
  (depends-on "compat"))

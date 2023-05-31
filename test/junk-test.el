@@ -9,22 +9,22 @@
 (require 'junk nil t)
 
 (ert-deftest junk--install ()
-  (with-mock (package-install
-              delete-other-windows
-              package-vc-install)
+  (sulphur-with-mock (package-install
+                      delete-other-windows
+                      package-vc-install)
 
     (junk--install '(one two) :delete-windows t)
-    (was-called-nth-with package-install '(one) 0)
-    (was-called-nth-with package-install '(two) 1)
-    (was-called delete-other-windows)
-    (clear-mocks)
+    (sulphur-was-called-nth-with package-install '(one) 0)
+    (sulphur-was-called-nth-with package-install '(two) 1)
+    (sulphur-was-called delete-other-windows)
+    (sulphur-clear-mocks)
 
     (junk--install '(four) :installer 'package-vc-install)
-    (was-called-with package-vc-install '(four))
-    (was-not-called delete-other-windows)))
+    (sulphur-was-called-with package-vc-install '(four))
+    (sulphur-was-not-called delete-other-windows)))
 
 (ert-deftest junk-expand ()
-  (match-expansion
+  (sulphur-match-expansion
    (junk-expand test
      "Tasteful expansion pack."
      :packages '(pull out of the package)
@@ -57,7 +57,7 @@
     (should (junk--pack-p 'three-mode))))
 
 (ert-deftest junk--filter--items-may-be-mapped ()
-  (with-mock ((package-installed-p . (lambda (p) (memq p '(test best)))))
+  (sulphur-with-mock ((package-installed-p . (lambda (p) (memq p '(test best)))))
 
     (should (equal (junk--filter '((test "test") (rest "rest") (best "best")) :mapper #'car)
                    '((rest "rest"))))))
@@ -67,9 +67,9 @@
         (selection 'all))
 
     (ert-with-message-capture messages
-      (with-mock ((package-installed-p . #'ignore)
-                  (package-install . #'always)
-                  (completing-read . (lambda (_m _l) selection)))
+      (sulphur-with-mock ((package-installed-p . #'ignore)
+                          (package-install . #'always)
+                          (completing-read . (lambda (_m _l) selection)))
 
         (junk--install-extras extras)
 
@@ -80,10 +80,10 @@
 
 (ert-deftest junk-install ()
   (let ((messages '()))
-    (with-mock ((completing-read . (lambda (_m _v) "one"))
-                (package-installed-p . #'ignore)
-                (package-install . #'always)
-                (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args))))))
+    (sulphur-with-mock ((completing-read . (lambda (_m _v) "one"))
+                        (package-installed-p . #'ignore)
+                        (package-install . #'always)
+                        (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args))))))
 
       (let ((junk-expansion-packs wal-test-packs))
 
@@ -93,9 +93,9 @@
 
 (ert-deftest junk-install--installed-already ()
   (let ((messages '()))
-    (with-mock ((completing-read . (lambda (_m _v) "one"))
-                (package-installed-p . #'always)
-                (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args))))))
+    (sulphur-with-mock ((completing-read . (lambda (_m _v) "one"))
+                        (package-installed-p . #'always)
+                        (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args))))))
       (let ((junk-expansion-packs wal-test-packs))
 
         (call-interactively 'junk-install)
@@ -104,37 +104,37 @@
 
 (ert-deftest junk-install--with-extras ()
   (let ((messages '()))
-    (with-mock ((completing-read . (lambda (_m _v) "two"))
-                (package-installed-p . #'ignore)
-                (package-install . #'always)
-                (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args)))))
-                (yes-or-no-p . #'ignore))
+    (sulphur-with-mock ((completing-read . (lambda (_m _v) "two"))
+                        (package-installed-p . #'ignore)
+                        (package-install . #'always)
+                        (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args)))))
+                        (yes-or-no-p . #'ignore))
 
       (let ((junk-expansion-packs wal-test-packs))
         (call-interactively 'junk-install)
 
         (should (string-equal (car messages) "Installed 'two'."))))
 
-    (with-mock ((completing-read . (lambda (_m _v) "two"))
-                (package-installed-p . (lambda (it) (equal 'two it)))
-                (package-install . #'always)
-                (yes-or-no-p . #'always)
-                (junk--install-extras . (lambda (_) 'extra)))
+    (sulphur-with-mock ((completing-read . (lambda (_m _v) "two"))
+                        (package-installed-p . (lambda (it) (equal 'two it)))
+                        (package-install . #'always)
+                        (yes-or-no-p . #'always)
+                        (junk--install-extras . (lambda (_) 'extra)))
 
       (let ((junk-expansion-packs wal-test-packs))
 
         (should (equal (call-interactively 'junk-install) 'extra))))))
 
 (ert-deftest -junk-package-vc-install ()
-  (with-mock (package-vc-install package--update-selected-packages)
+  (sulphur-with-mock (package-vc-install package--update-selected-packages)
 
     (junk-package-vc-install '(test "http://test.com"))
 
-    (was-called-with package-vc-install (list "http://test.com"))
-    (was-called-with package--update-selected-packages (list '(test) nil))))
+    (sulphur-was-called-with package-vc-install (list "http://test.com"))
+    (sulphur-was-called-with package--update-selected-packages (list '(test) nil))))
 
 (ert-deftest -junk-package-vc-install--shows-error-if-not-present ()
-  (with-mock ((fboundp . #'ignore))
+  (sulphur-with-mock ((fboundp . #'ignore))
 
     (should-error (junk-package-vc-install '(test "http://test.com")) :type 'user-error)))
 
@@ -159,7 +159,7 @@
                            ("" :face 'marginalia-value :truncate 0.8)
                            ("" :face 'marginalia-value :truncate 0.4))))
 
-    (with-mock ((junk--parts . (lambda (_) '(nil nil nil "test"))))
+    (sulphur-with-mock ((junk--parts . (lambda (_) '(nil nil nil "test"))))
 
       (should (equal expected (junk-annotate "test"))))))
 
