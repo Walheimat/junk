@@ -8,16 +8,16 @@
 
 (require 'ert-x)
 (require 'compat nil t)
-(require 'sulphur nil t)
+(require 'bydi nil t)
 
-(declare-function sulphur-path-setup "ext:sulphur.el")
-(declare-function sulphur-ert-runner-setup "ext:sulphur.el")
-(declare-function sulphur-undercover-setup "ext:sulphur.el")
+(declare-function bydi-path-setup "ext:bydi.el")
+(declare-function bydi-ert-runner-setup "ext:bydi.el")
+(declare-function bydi-undercover-setup "ext:bydi.el")
 
 ;; Setup
 
-(sulphur-path-setup)
-(sulphur-undercover-setup (list "junk.el"))
-(sulphur-ert-runner-setup)
+(bydi-path-setup)
+(bydi-undercover-setup (list "junk.el"))
+(bydi-ert-runner-setup)
 
 ;;; test-helper.el ends here

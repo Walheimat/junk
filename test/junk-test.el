@@ -9,22 +9,22 @@
 (require 'junk nil t)
 
 (ert-deftest junk--install ()
-  (sulphur-with-mock (package-install
+  (bydi-with-mock (package-install
                       delete-other-windows
                       package-vc-install)
 
     (junk--install '(one two) :delete-windows t)
-    (sulphur-was-called-nth-with package-install '(one) 0)
-    (sulphur-was-called-nth-with package-install '(two) 1)
-    (sulphur-was-called delete-other-windows)
-    (sulphur-clear-mocks)
+    (bydi-was-called-nth-with package-install '(one) 0)
+    (bydi-was-called-nth-with package-install '(two) 1)
+    (bydi-was-called delete-other-windows)
+    (bydi-clear-mocks)
 
     (junk--install '(four) :installer 'package-vc-install)
-    (sulphur-was-called-with package-vc-install '(four))
-    (sulphur-was-not-called delete-other-windows)))
+    (bydi-was-called-with package-vc-install '(four))
+    (bydi-was-not-called delete-other-windows)))
 
 (ert-deftest junk-expand ()
-  (sulphur-match-expansion
+  (bydi-match-expansion
    (junk-expand test
      "Tasteful expansion pack."
      :packages '(pull out of the package)
@@ -57,7 +57,7 @@
     (should (junk--pack-p 'three-mode))))
 
 (ert-deftest junk--filter--items-may-be-mapped ()
-  (sulphur-with-mock ((package-installed-p . (lambda (p) (memq p '(test best)))))
+  (bydi-with-mock ((package-installed-p . (lambda (p) (memq p '(test best)))))
 
     (should (equal (junk--filter '((test "test") (rest "rest") (best "best")) :mapper #'car)
                    '((rest "rest"))))))
@@ -67,7 +67,7 @@
         (selection 'all))
 
     (ert-with-message-capture messages
-      (sulphur-with-mock ((package-installed-p . #'ignore)
+      (bydi-with-mock ((package-installed-p . #'ignore)
                           (package-install . #'always)
                           (completing-read . (lambda (_m _l) selection)))
 
@@ -80,7 +80,7 @@
 
 (ert-deftest junk-install ()
   (let ((messages '()))
-    (sulphur-with-mock ((completing-read . (lambda (_m _v) "one"))
+    (bydi-with-mock ((completing-read . (lambda (_m _v) "one"))
                         (package-installed-p . #'ignore)
                         (package-install . #'always)
                         (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args))))))
@@ -93,7 +93,7 @@
 
 (ert-deftest junk-install--installed-already ()
   (let ((messages '()))
-    (sulphur-with-mock ((completing-read . (lambda (_m _v) "one"))
+    (bydi-with-mock ((completing-read . (lambda (_m _v) "one"))
                         (package-installed-p . #'always)
                         (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args))))))
       (let ((junk-expansion-packs wal-test-packs))
@@ -104,7 +104,7 @@
 
 (ert-deftest junk-install--with-extras ()
   (let ((messages '()))
-    (sulphur-with-mock ((completing-read . (lambda (_m _v) "two"))
+    (bydi-with-mock ((completing-read . (lambda (_m _v) "two"))
                         (package-installed-p . #'ignore)
                         (package-install . #'always)
                         (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args)))))
@@ -115,7 +115,7 @@
 
         (should (string-equal (car messages) "Installed 'two'."))))
 
-    (sulphur-with-mock ((completing-read . (lambda (_m _v) "two"))
+    (bydi-with-mock ((completing-read . (lambda (_m _v) "two"))
                         (package-installed-p . (lambda (it) (equal 'two it)))
                         (package-install . #'always)
                         (yes-or-no-p . #'always)
@@ -126,15 +126,15 @@
         (should (equal (call-interactively 'junk-install) 'extra))))))
 
 (ert-deftest -junk-package-vc-install ()
-  (sulphur-with-mock (package-vc-install package--update-selected-packages)
+  (bydi-with-mock (package-vc-install package--update-selected-packages)
 
     (junk-package-vc-install '(test "http://test.com"))
 
-    (sulphur-was-called-with package-vc-install (list "http://test.com"))
-    (sulphur-was-called-with package--update-selected-packages (list '(test) nil))))
+    (bydi-was-called-with package-vc-install (list "http://test.com"))
+    (bydi-was-called-with package--update-selected-packages (list '(test) nil))))
 
 (ert-deftest -junk-package-vc-install--shows-error-if-not-present ()
-  (sulphur-with-mock ((fboundp . #'ignore))
+  (bydi-with-mock ((fboundp . #'ignore))
 
     (should-error (junk-package-vc-install '(test "http://test.com")) :type 'user-error)))
 
@@ -159,7 +159,7 @@
                            ("" :face 'marginalia-value :truncate 0.8)
                            ("" :face 'marginalia-value :truncate 0.4))))
 
-    (sulphur-with-mock ((junk--parts . (lambda (_) '(nil nil nil "test"))))
+    (bydi-with-mock ((junk--parts . (lambda (_) '(nil nil nil "test"))))
 
       (should (equal expected (junk-annotate "test"))))))
 
