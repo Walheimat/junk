@@ -15,7 +15,7 @@ endif
 
 .PHONY: package-install
 package-install: dist
-	$(EMACS) --batch -f package-initialize --eval "(package-install-file \"$(SOURCE_DIR)/dist/junk-$(PACKAGE_VERSION).tar\")"
+	$(EMACS) --batch -f package-initialize --eval "(package-install-file \"$(SOURCE_DIR)/dist/junk-$(PACKAGE_VERSION).el\")"
 
 .PHONY: clean-install
 clean-install: clean install
@@ -27,8 +27,6 @@ ci: .cask
 local: dist
 
 dist: .cask
-	cask build
-	cask pkg-file
 	cask package
 
 .cask:
@@ -51,5 +49,4 @@ clean:
 
 .PHONY: clobber
 clobber: clean
-	rm -f junk-pkg.el
 	rm -rf .cask
