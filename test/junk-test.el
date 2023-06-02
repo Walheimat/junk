@@ -149,7 +149,7 @@
 
 ;; Mock implementation
 (defmacro marginalia--fields (&rest body)
-  "Mock implementation of `marginalia--fields'."
+  "Mock implementation of `marginalia--fields' using BODY."
   `(progn
      (cons 'result ',body)))
 
@@ -164,3 +164,7 @@
       (should (equal expected (junk-annotate "test"))))))
 
 ;;; junk-test.el ends here
+
+;; Local Variables:
+;; no-byte-compile: t
+;; End:
