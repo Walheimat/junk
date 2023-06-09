@@ -9,9 +9,9 @@
 (require 'junk nil t)
 
 (ert-deftest junk--install ()
-  (bydi-with-mock (package-install
-                   delete-other-windows
-                   package-vc-install)
+  (bydi (package-install
+         delete-other-windows
+         package-vc-install)
 
     (junk--install '(one two) :delete-windows t)
     (bydi-was-called-nth-with package-install '(one) 0)
@@ -57,7 +57,7 @@
     (should (junk--pack-p 'three-mode))))
 
 (ert-deftest junk--filter--items-may-be-mapped ()
-  (bydi-with-mock ((package-installed-p . (lambda (p) (memq p '(test best)))))
+  (bydi ((:mock package-installed-p :with (lambda (p) (memq p '(test best)))))
 
     (should (equal (junk--filter '((test "test") (rest "rest") (best "best")) :mapper #'car)
                    '((rest "rest"))))))
@@ -67,9 +67,9 @@
         (selection 'all))
 
     (ert-with-message-capture messages
-      (bydi-with-mock ((package-installed-p . #'ignore)
-                       (package-install . #'always)
-                       (completing-read . (lambda (_m _l) selection)))
+      (bydi ((:ignore package-installed-p)
+             (:always package-install)
+             (:mock completing-read :return selection))
 
         (junk--install-extras extras)
 
@@ -80,10 +80,10 @@
 
 (ert-deftest junk-install ()
   (let ((messages '()))
-    (bydi-with-mock ((completing-read . (lambda (_m _v) "one"))
-                     (package-installed-p . #'ignore)
-                     (package-install . #'always)
-                     (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args))))))
+    (bydi ((:mock completing-read :return "one")
+           (:ignore package-installed-p)
+           (:always package-install)
+           (:mock message :with (lambda (m &rest args) (add-to-list 'messages (format m (car args))))))
 
       (let ((junk-expansion-packs wal-test-packs))
 
@@ -93,9 +93,9 @@
 
 (ert-deftest junk-install--installed-already ()
   (let ((messages '()))
-    (bydi-with-mock ((completing-read . (lambda (_m _v) "one"))
-                     (package-installed-p . #'always)
-                     (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args))))))
+    (bydi ((completing-read . (lambda (_m _v) "one"))
+           (package-installed-p . #'always)
+           (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args))))))
       (let ((junk-expansion-packs wal-test-packs))
 
         (call-interactively 'junk-install)
@@ -104,29 +104,29 @@
 
 (ert-deftest junk-install--with-extras ()
   (let ((messages '()))
-    (bydi-with-mock ((completing-read . (lambda (_m _v) "two"))
-                     (package-installed-p . #'ignore)
-                     (package-install . #'always)
-                     (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args)))))
-                     (yes-or-no-p . #'ignore))
+    (bydi ((completing-read . (lambda (_m _v) "two"))
+           (package-installed-p . #'ignore)
+           (package-install . #'always)
+           (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args)))))
+           (yes-or-no-p . #'ignore))
 
       (let ((junk-expansion-packs wal-test-packs))
         (call-interactively 'junk-install)
 
         (should (string-equal (car messages) "Installed 'two'."))))
 
-    (bydi-with-mock ((completing-read . (lambda (_m _v) "two"))
-                     (package-installed-p . (lambda (it) (equal 'two it)))
-                     (package-install . #'always)
-                     (yes-or-no-p . #'always)
-                     (junk--install-extras . (lambda (_) 'extra)))
+    (bydi ((completing-read . (lambda (_m _v) "two"))
+           (package-installed-p . (lambda (it) (equal 'two it)))
+           (package-install . #'always)
+           (yes-or-no-p . #'always)
+           (junk--install-extras . (lambda (_) 'extra)))
 
       (let ((junk-expansion-packs wal-test-packs))
 
         (should (equal (call-interactively 'junk-install) 'extra))))))
 
 (ert-deftest -junk-package-vc-install ()
-  (bydi-with-mock (package-vc-install package--update-selected-packages)
+  (bydi (package-vc-install package--update-selected-packages)
 
     (junk-package-vc-install '(test "http://test.com"))
 
@@ -134,7 +134,7 @@
     (bydi-was-called-with package--update-selected-packages (list '(test) nil))))
 
 (ert-deftest -junk-package-vc-install--shows-error-if-not-present ()
-  (bydi-with-mock ((fboundp . #'ignore))
+  (bydi ((:ignore fboundp))
 
     (should-error (junk-package-vc-install '(test "http://test.com")) :type 'user-error)))
 
@@ -159,7 +159,7 @@
                            ("" :face 'marginalia-value :truncate 0.8)
                            ("" :face 'marginalia-value :truncate 0.4))))
 
-    (bydi-with-mock ((junk--parts . (lambda (_) '(nil nil nil "test"))))
+    (bydi ((:mock junk--parts :with (lambda (_) '(nil nil nil "test"))))
 
       (should (equal expected (junk-annotate "test"))))))
 
