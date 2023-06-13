@@ -10,5 +10,3 @@
 (package "junk" "0.1.0" "Package expansion packs")
 
 (package-file "junk.el")
-
-(files "*.el")
