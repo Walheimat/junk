@@ -26,4 +26,30 @@ with =make package-install=.
 
 ** Usage
 
+You can use =junk-expand= to create a named expansion pack that includes
+packages that will always be installed and optional extras. Normals
+packages use the =:packages= keyword; recipes (installed using
+=package-vc-install= and appropriate specs) use =:recipes=.
+
+#+begin_src emacs-lisp
+(junk-expand big-pack
+  "Additional packages for big users."
+  :packages (slime cider)
+  :extras (clojure-mode puni)
+  :recipes ((junk (:url "https://github.com/Walheimat/junk.git"))))
+#+end_src
+
+You can now install =big-pack= by calling =junk-install=. It will install
+=slime=, =cider= and =junk=. When called again, it will prompt to install
+one of the extras. If all packages are installed, it will just emit a
+message to that effect.
+
+If you use =marginalia= you can use the annotation function
+=junk-annotate=.
+
+#+begin_src emacs-lisp
+(add-to-list 'marginalia-annotator-registry '(expansion-pack junk-annotate builtin none))
+(add-to-list 'marginalia-command-categories '(junk-install . expansion-pack))
+#+end_src
+
 Please have a look, again, at my [[https://github.com/Walheimat/wal-emacs][configuration]] for usage examples.
