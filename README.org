@@ -22,7 +22,8 @@ If you use =straight= or =quelpa=, you know what to do.
 If you're on Emacs >29, I recommend using =package-vc-install=.
 
 Alternatively, provided you have Cask, you can install the package
-with =make package-install=.
+with =make package-install=. You will need to run =git submodule init=
+first to clone =dinghy= dependency.
 
 ** Usage
 

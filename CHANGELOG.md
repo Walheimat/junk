@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Switched to using new `dinghy` repo as submodule for the Makefile.
+
+### Changed
+
 - The entire package was refactored to simplify the code.
 - `junk--pack-p` was renamed to `junk--pack-package-p` to reflect the
   purpose of the function.
