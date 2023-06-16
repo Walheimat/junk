@@ -159,10 +159,11 @@ Apply MAPPER to packages if set."
         (,(junk--stringify (append packages (mapcar #'car recipes))) :face 'marginalia-value :truncate 0.8)
         (,(junk--stringify extras) :face 'marginalia-value :truncate 0.4))))))
 
-(defun junk--ensure-advice (name ensure _state &optional _no-refresh)
-  "Verify that NAME (or ENSURE) is not a `junk' package."
-  (when-let ((package (or (and (eq ensure t) (junk--symbolize name))
-                     ensure)))
+(defun junk--ensure-advice (name args _state &optional _no-refresh)
+  "Verify that NAME (or package in ARGS) is not a `junk' package."
+  (when-let* ((ensure (car-safe args))
+              (package (or (and (eq ensure t) (junk--symbolize name))
+                           ensure)))
     (when (consp package)
       (setq package (car package)))
 

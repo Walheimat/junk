@@ -168,11 +168,11 @@
   (bydi ((:mock junk--pack-package-p :with (lambda (it) (eq 'test it))))
 
     (should-not (junk--ensure-advice 'test nil nil))
-    (should-not (junk--ensure-advice 'other t nil))
+    (should-not (junk--ensure-advice 'other '(t) nil))
     (should-not (junk--ensure-advice 'other nil nil))
-    (should (junk--ensure-advice 'test t nil))
-    (should (junk--ensure-advice 'other '(test :pin "test") nil))
-    (should (junk--ensure-advice "test" t nil))))
+    (should (junk--ensure-advice 'test '(t) nil))
+    (should (junk--ensure-advice 'other '((test . "test")) nil))
+    (should (junk--ensure-advice "test" '(t) nil))))
 
 ;; API
 
