@@ -23,7 +23,25 @@
 
 Individual languages build this list using macro `junk'.")
 
-(cl-defun junk--install (packages &key delete-windows installer)
+;; Macros
+
+(cl-defmacro junk--with-parts (item &rest body &key with-docs &allow-other-keys)
+  "Execute BODY with an ITEM's junk parts bound.
+
+Also bind docs if WITH-DOCS is t."
+  (declare (indent defun))
+
+  `(cl-destructuring-bind (packages extras recipes ,(if with-docs 'docs '_docs)) (junk--parts ,item)
+     ,@(delq nil
+             (cl-loop for (key val)
+                      on body by 'cddr
+                      unless (memq key '(:with-docs))
+                      collect key
+                      and collect val))))
+
+;; Installation
+
+(cl-defun junk-install--packages (packages &key delete-windows installer)
   "Install PACKAGES.
 
 Calls `delete-other-windows' if DELETE-WINDOWS is t.
@@ -36,27 +54,57 @@ Uses `package-install' unless custom INSTALLER is provided."
     (when delete-windows
       (delete-other-windows))))
 
-(defun junk-package-vc-install (recipe)
-  "Install RECIPE using `package-vc-install'."
-  (if (fboundp 'package-vc-install)
-      (cl-destructuring-bind (package url) recipe
-        (package-vc-install url)
-        (package--update-selected-packages (list package) nil))
-    (user-error "Recipes can only be installed with `package-vc-install'")))
+(defun junk-install--pack (pack)
+  "Install expansion PACK."
+  (junk--with-parts pack
+    (let ((name (symbol-name (car pack)))
+          (normal (junk--filter packages))
+          (from-recipe (junk--filter recipes :mapper #'car)))
 
-(cl-defun junk--filter (packages &key mapper)
-  "Return PACKAGES that are not yet installed.
+      (if (not (append normal from-recipe))
+          (if (and (junk--filter extras)
+                   (yes-or-no-p (format "Want to install an extra for '%s'?" name)))
+              (junk-install--extras extras)
+            (message "Package '%s' is already installed." name))
+        (junk-install--packages normal :delete-windows t)
+        (junk-install--packages from-recipe :installer 'junk-install--recipe)
+        (message "Installed '%s'." name)))))
 
-Apply MAPPER to packages if set."
-  (seq-filter (lambda (it)
-                (let ((package (if mapper
-                                   (funcall mapper it)
-                                 it)))
-                  (not (package-installed-p package))))
-                packages))
+(defun junk-install--recipe (recipe)
+  "Install RECIPE."
+  (unless (fboundp 'package-vc-install)
+    (user-error "Recipes can only be installed with `package-vc-install'"))
 
-(defun junk--packs ()
-  "Get a list of all expansion packs."
+  (package-vc-install recipe)
+  (package--update-selected-packages (list (car recipe)) nil))
+
+(defun junk-install--extras (extras)
+  "Install one or all packages in EXTRAS."
+  (let* ((selection (intern-soft
+                     (completing-read
+                      "Select extra to install: " (append extras '(all))))))
+
+    (pcase selection
+      ('all
+       (junk-install--packages extras)
+       (message "Installed all extras."))
+      (_
+       (junk-install--packages (list selection))
+       (message (format "Installed extra '%s'." selection))))))
+
+;; Utility
+
+(defvar junk--keywords '(:packages :extras :recipes :docs))
+(defun junk--parts (pack)
+  "Get the parts from expansion pack PACK.
+
+Returns a list of (PACKAGES EXTRAS RECIPES DOCS)."
+  (let ((plist-pack-get (apply-partially 'plist-get (cdr pack))))
+
+    (mapcar plist-pack-get junk--keywords)))
+
+(defun junk--packages ()
+  "Get a list of all expansion pack packages."
   (seq-reduce
    (lambda (acc it)
      (cl-destructuring-bind
@@ -65,87 +113,59 @@ Apply MAPPER to packages if set."
        (append acc packages extras (mapcar #'car recipes))))
    junk-expansion-packs '()))
 
-(defun junk--pack-p (pack)
+(defun junk--pack-package-p (pack)
   "Check if PACK is an expansion pack package."
-  (memq pack (junk--packs)))
+  (memq pack (junk--packages)))
 
-(defun junk--install-extras (extras)
-  "Install one or all packages in EXTRAS."
-  (let* ((selection (intern-soft
-                     (completing-read
-                      "Select extra to install: " (append extras '(all))))))
+(defun junk--pack-from-name (name)
+  "Get pack named NAME."
+  (if-let ((pack (assoc (intern-soft name) junk-expansion-packs)))
+      pack
+    (user-error "Unknown pack '%s', check `junk-expansion-packs'" pack)))
 
-    (pcase selection
-      ('all
-       (junk--install extras)
-       (message "Installed all extras."))
-      (_
-       (junk--install (list selection))
-       (message (format "Installed extra '%s'." selection))))))
+(defun junk--read-package ()
+  "Read a `junk' package."
+  (let ((name (completing-read "Select pack to install: " junk-expansion-packs)))
+    (junk--pack-from-name name)))
 
-(defun junk-install (pack)
-  "Install the given expansion PACK."
-  (interactive
-   (list (completing-read "Select pack to install: "
-                          (mapcar (lambda (pack) (car pack)) junk-expansion-packs))))
+(cl-defun junk--filter (packages &key mapper)
+  "Return PACKAGES that are not yet installed.
 
-  (let* ((sym (intern-soft pack))
-         (item (assoc sym junk-expansion-packs)))
+Apply MAPPER to packages if set."
+  (let* ((mapper (if mapper mapper #'identity))
+         (not-installed-p
+          (lambda (it)
+            (not (package-installed-p (funcall mapper it))))))
 
-    (cl-destructuring-bind
-        (packages extras recipes _)
-        (junk--parts item)
-
-      (when (not item)
-        (user-error "Unknown pack '%s', check `junk-expansion-packs'" sym))
-
-      (let ((normal (junk--filter packages))
-            (from-recipe (junk--filter recipes :mapper #'car)))
-
-        (if (not (append normal from-recipe))
-            (if (and (junk--filter extras)
-                     (yes-or-no-p (format "Want to install an extra for '%s'?" pack)))
-                (junk--install-extras extras)
-              (message "Package '%s' is already installed." pack))
-          (junk--install normal :delete-windows t)
-          (junk--install from-recipe :installer 'junk-package-vc-install)
-          (message "Installed '%s'." pack))))))
+    (seq-filter not-installed-p packages)))
 
 (defun junk--stringify (package-list)
   "Stringify PACKAGE-LIST."
-  (if package-list
-      (mapconcat (lambda (it) (format "%s" it)) package-list ", ")
-    ""))
+  (mapconcat #'symbol-name package-list ", "))
 
-(defun junk--parts (pack)
-  "Get the parts from expansion pack PACK.
-
-Returns a list of (PACKAGES EXTRAS RECIPES DOCS)."
-  (let ((p (cdr pack)))
-
-    (list
-     (plist-get p :packages)
-     (plist-get p :extras)
-     (plist-get p :recipes)
-     (plist-get p :docs))))
-
-;; `marginalia' integration
-
-(defun junk-annotate (candidate)
-  "Annotate CANDIDATE expansion pack."
-  (let* ((item (assoc (intern candidate) junk-expansion-packs))
-         (parts (junk--parts item)))
-
-    (cl-destructuring-bind (packages extras recipes docs) parts
-
-      (eval
-       (macroexpand
-        `(marginalia--fields
-          (,docs :face 'marginalia-documentation :truncate 0.6)
-          (,(junk--stringify (append packages recipes)) :face 'marginalia-value :truncate 0.8)
-          (,(junk--stringify extras) :face 'marginalia-value :truncate 0.4)))))))
+(defun junk--annotate (pack)
+  "Annotate PACK."
+  (junk--with-parts pack :with-docs t
+    (eval
+     (macroexpand
+      `(marginalia--fields
+        (,docs :face 'marginalia-documentation :truncate 0.6)
+        (,(junk--stringify (append packages (mapcar #'car recipes))) :face 'marginalia-value :truncate 0.8)
+        (,(junk--stringify extras) :face 'marginalia-value :truncate 0.4))))))
 
 ;; API
+
+;;;###autoload
+(defun junk-annotate (candidate)
+  "Annotate CANDIDATE expansion pack for `marginalia'."
+  (junk--annotate (junk--pack-from-name candidate)))
+
+;;;###autoload
+(defun junk-install (pack)
+  "Install expansion PACK."
+  (interactive (list (junk--read-package)))
+
+  (junk-install--pack pack))
 
 ;;;###autoload
 (cl-defmacro junk-expand (name docs &key packages extras recipes)

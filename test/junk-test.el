@@ -8,20 +8,167 @@
 
 (require 'junk nil t)
 
-(ert-deftest junk--install ()
+;; Macros
+
+(ert-deftest junk--with-parts ()
+  (bydi-match-expansion
+   (junk--with-parts test :with-docs t
+     (message docs))
+   '(cl-destructuring-bind
+        (packages extras recipes docs)
+        (junk--parts test)
+      (message docs))))
+
+
+;; Installing
+
+(defvar junk-test-packs
+  '((one :packages (one)
+         :extras nil
+         :docs "That's one."
+         :recipes nil)
+    (two :packages (two)
+         :extras (twofer)
+         :docs "That's two."
+         :recipes nil)
+    (three :packages nil
+           :extras nil
+           :docs "That's three."
+           :recipes ((three-mode (:url "https://get-three-mode"))))))
+
+(ert-deftest junk-install--packages ()
   (bydi (package-install
          delete-other-windows
          package-vc-install)
 
-    (junk--install '(one two) :delete-windows t)
+    (junk-install--packages '(one two) :delete-windows t)
     (bydi-was-called-nth-with package-install '(one) 0)
     (bydi-was-called-nth-with package-install '(two) 1)
     (bydi-was-called delete-other-windows)
     (bydi-clear-mocks)
 
-    (junk--install '(four) :installer 'package-vc-install)
+    (junk-install--packages '(four) :installer 'package-vc-install)
     (bydi-was-called-with package-vc-install '(four))
     (bydi-was-not-called delete-other-windows)))
+
+(ert-deftest junk-install--pack ()
+  (let ((junk-expansion-packs junk-test-packs))
+
+    (bydi ((:ignore package-installed-p)
+           (:always package-install))
+      (ert-with-message-capture messages
+        (junk-install--pack (car junk-test-packs))
+        (should (string-equal messages "Installed ’one’.\n"))))))
+
+
+(ert-deftest junk-install--pack--installed-already ()
+  (let ((junk-expansion-packs junk-test-packs))
+
+    (bydi ((package-installed-p . #'always))
+      (ert-with-message-capture messages
+        (junk-install--pack (car junk-test-packs))
+        (should (string-equal messages "Package ’one’ is already installed.\n"))))))
+
+(ert-deftest junk-install--recipe ()
+  (bydi (package-vc-install package--update-selected-packages)
+
+    (junk-install--recipe '(test (:url "http://test.com")))
+
+    (bydi-was-called-with package-vc-install (list '(test (:url "http://test.com"))))
+    (bydi-was-called-with package--update-selected-packages (list '(test) nil))))
+
+(ert-deftest junk-install--recipe--shows-error-if-not-present ()
+  (bydi ((:ignore fboundp))
+
+    (should-error (junk-install--recipe '(test "http://test.com")) :type 'user-error)))
+
+(ert-deftest junk-install--extras ()
+  (let ((extras (plist-get (nth 2 junk-expansion-packs) :extras))
+        (selection 'all))
+
+    (bydi ((:ignore package-installed-p)
+           (:always package-install)
+           (:mock completing-read :return selection))
+
+      (ert-with-message-capture messages
+        (junk-install--extras extras)
+        (should (string-equal messages "Installed all extras.\n"))
+
+        (setq messages nil)
+        (setq selection 'twofer)
+        (junk-install--extras extras)
+
+        (should (string-equal messages "Installed extra ’twofer’.\n"))))))
+
+(ert-deftest junk-install--with-extras ()
+  (let ((junk-expansion-packs junk-test-packs))
+
+    (bydi ((completing-read . (lambda (_m _v) "two"))
+           (package-installed-p . #'ignore)
+           (package-install . #'always)
+           (yes-or-no-p . #'ignore))
+
+      (ert-with-message-capture messages
+        (call-interactively 'junk-install)
+        (should (string-equal messages "Installed ’two’.\n"))))))
+
+(ert-deftest junk-install--errors-for-non-existing ()
+  (let ((junk-expansion-packs junk-test-packs))
+
+    (should-error (junk-install 'four))))
+
+;; Utility
+
+(ert-deftest junk--packages ()
+  (let ((junk-expansion-packs junk-test-packs))
+
+    (should (equal (junk--packages) '(one two twofer three-mode)))))
+
+(ert-deftest junk--pack-package-p ()
+  (let ((junk-expansion-packs junk-test-packs))
+
+    (should (junk--pack-package-p 'three-mode))))
+
+(ert-deftest junk--read-package--errors-for-missing ()
+  (let ((junk-expansion-packs junk-test-packs))
+
+    (bydi ((:mock completing-read :return "four"))
+      (should-error (junk--read-package)))))
+
+(ert-deftest junk--filter--items-may-be-mapped ()
+  (bydi ((:mock package-installed-p :with (lambda (p) (memq p '(test best)))))
+
+    (should (equal (junk--filter '((test "test") (rest "rest") (best "best")) :mapper #'car)
+                   '((rest "rest"))))))
+
+(ert-deftest junk--stringify ()
+  (should (string-equal (junk--stringify '(one two three)) "one, two, three"))
+  (should (string-empty-p (junk--stringify '()))))
+
+;; API
+
+(defmacro marginalia--fields (&rest body)
+  "Mock implementation of `marginalia--fields' using BODY."
+  `(progn
+     (cons 'result ',body)))
+
+(ert-deftest junk-annotate ()
+  (let ((junk-expansion-packs '((test :packages (test))))
+        (expected '(result ("test" :face 'marginalia-documentation :truncate 0.6)
+                           ("" :face 'marginalia-value :truncate 0.8)
+                           ("" :face 'marginalia-value :truncate 0.4))))
+
+    (bydi ((:mock junk--parts :with (lambda (_) '(nil nil nil "test"))))
+
+      (should (equal expected (junk-annotate "test"))))))
+
+(ert-deftest junk-install ()
+  (let ((junk-expansion-packs junk-test-packs))
+
+    (bydi ((:mock completing-read :return "one")
+           junk-install--pack)
+      (call-interactively 'junk-install)
+      (bydi-was-called junk-install--pack))))
 
 (ert-deftest junk-expand ()
   (bydi-match-expansion
@@ -37,131 +184,6 @@
                          :docs "Tasteful expansion pack."
                          :recipes '(heat in oven))))))
 
-(defvar wal-test-packs '((one :packages
-                              (one)
-                              :extras nil :docs "That's one." :recipes nil)
-                         (two :packages
-                              (two)
-                              :extras (twofer) :docs "That's two." :recipes nil)
-                         (three :packages nil :extras nil :docs "That's three." :recipes
-                                ((three-mode "https://get-three-mode")))))
-
-(ert-deftest junk--packs ()
-  (let ((junk-expansion-packs wal-test-packs))
-
-    (should (equal (junk--packs) '(one two twofer three-mode)))))
-
-(ert-deftest junk--pack-p ()
-  (let ((junk-expansion-packs wal-test-packs))
-
-    (should (junk--pack-p 'three-mode))))
-
-(ert-deftest junk--filter--items-may-be-mapped ()
-  (bydi ((:mock package-installed-p :with (lambda (p) (memq p '(test best)))))
-
-    (should (equal (junk--filter '((test "test") (rest "rest") (best "best")) :mapper #'car)
-                   '((rest "rest"))))))
-
-(ert-deftest junk--install-extras ()
-  (let ((extras (plist-get (nth 2 junk-expansion-packs) :extras))
-        (selection 'all))
-
-    (ert-with-message-capture messages
-      (bydi ((:ignore package-installed-p)
-             (:always package-install)
-             (:mock completing-read :return selection))
-
-        (junk--install-extras extras)
-
-        (setq selection 'twofer)
-        (junk--install-extras extras)
-
-        (should (string-equal messages "Installed all extras.\nInstalled extra ’twofer’.\n"))))))
-
-(ert-deftest junk-install ()
-  (let ((messages '()))
-    (bydi ((:mock completing-read :return "one")
-           (:ignore package-installed-p)
-           (:always package-install)
-           (:mock message :with (lambda (m &rest args) (add-to-list 'messages (format m (car args))))))
-
-      (let ((junk-expansion-packs wal-test-packs))
-
-        (call-interactively 'junk-install)
-
-        (should (string-equal (car messages) "Installed 'one'."))))))
-
-(ert-deftest junk-install--installed-already ()
-  (let ((messages '()))
-    (bydi ((completing-read . (lambda (_m _v) "one"))
-           (package-installed-p . #'always)
-           (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args))))))
-      (let ((junk-expansion-packs wal-test-packs))
-
-        (call-interactively 'junk-install)
-
-        (should (string-equal (car messages) "Package 'one' is already installed."))))))
-
-(ert-deftest junk-install--with-extras ()
-  (let ((messages '()))
-    (bydi ((completing-read . (lambda (_m _v) "two"))
-           (package-installed-p . #'ignore)
-           (package-install . #'always)
-           (message . (lambda (m &rest args) (add-to-list 'messages (format m (car args)))))
-           (yes-or-no-p . #'ignore))
-
-      (let ((junk-expansion-packs wal-test-packs))
-        (call-interactively 'junk-install)
-
-        (should (string-equal (car messages) "Installed 'two'."))))
-
-    (bydi ((completing-read . (lambda (_m _v) "two"))
-           (package-installed-p . (lambda (it) (equal 'two it)))
-           (package-install . #'always)
-           (yes-or-no-p . #'always)
-           (junk--install-extras . (lambda (_) 'extra)))
-
-      (let ((junk-expansion-packs wal-test-packs))
-
-        (should (equal (call-interactively 'junk-install) 'extra))))))
-
-(ert-deftest -junk-package-vc-install ()
-  (bydi (package-vc-install package--update-selected-packages)
-
-    (junk-package-vc-install '(test "http://test.com"))
-
-    (bydi-was-called-with package-vc-install (list "http://test.com"))
-    (bydi-was-called-with package--update-selected-packages (list '(test) nil))))
-
-(ert-deftest -junk-package-vc-install--shows-error-if-not-present ()
-  (bydi ((:ignore fboundp))
-
-    (should-error (junk-package-vc-install '(test "http://test.com")) :type 'user-error)))
-
-(ert-deftest junk-install--errors-for-non-existing ()
-  (let ((junk-expansion-packs wal-test-packs))
-
-    (should-error (junk-install 'four))))
-
-(ert-deftest junk--stringify ()
-  (should (string-equal (junk--stringify '(one two three)) "one, two, three"))
-  (should (string-empty-p (junk--stringify '()))))
-
-;; Mock implementation
-(defmacro marginalia--fields (&rest body)
-  "Mock implementation of `marginalia--fields' using BODY."
-  `(progn
-     (cons 'result ',body)))
-
-(ert-deftest junk-annotate ()
-  (let ((junk-expansion-packs nil)
-        (expected '(result ("test" :face 'marginalia-documentation :truncate 0.6)
-                           ("" :face 'marginalia-value :truncate 0.8)
-                           ("" :face 'marginalia-value :truncate 0.4))))
-
-    (bydi ((:mock junk--parts :with (lambda (_) '(nil nil nil "test"))))
-
-      (should (equal expected (junk-annotate "test"))))))
 
 ;;; junk-test.el ends here
 
