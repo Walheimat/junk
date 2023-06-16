@@ -145,14 +145,16 @@
   (should (string-equal (junk--stringify '(one two three)) "one, two, three"))
   (should (string-empty-p (junk--stringify '()))))
 
-;; API
+(ert-deftest junk--symbolize ()
+  (should (eq 'test (junk--symbolize "test")))
+  (should (eq 'test (junk--symbolize 'test))))
 
 (defmacro marginalia--fields (&rest body)
   "Mock implementation of `marginalia--fields' using BODY."
   `(progn
      (cons 'result ',body)))
 
-(ert-deftest junk-annotate ()
+(ert-deftest junk--annotate ()
   (let ((junk-expansion-packs '((test :packages (test))))
         (expected '(result ("test" :face 'marginalia-documentation :truncate 0.6)
                            ("" :face 'marginalia-value :truncate 0.8)
@@ -160,7 +162,47 @@
 
     (bydi ((:mock junk--parts :with (lambda (_) '(nil nil nil "test"))))
 
-      (should (equal expected (junk-annotate "test"))))))
+      (should (equal expected (junk--annotate (car junk-expansion-packs)))))))
+
+(ert-deftest junk--ensure-advice ()
+  (bydi ((:mock junk--pack-package-p :with (lambda (it) (eq 'test it))))
+
+    (should-not (junk--ensure-advice 'test nil nil))
+    (should-not (junk--ensure-advice 'other t nil))
+    (should-not (junk--ensure-advice 'other nil nil))
+    (should (junk--ensure-advice 'test t nil))
+    (should (junk--ensure-advice 'other '(test :pin "test") nil))
+    (should (junk--ensure-advice "test" t nil))))
+
+;; API
+
+(ert-deftest junk-annotate ()
+  (bydi ((:mock junk--pack-from-name :return 'test)
+         junk--annotate)
+
+    (junk-annotate "test")
+    (bydi-was-called junk--pack-from-name)
+    (bydi-was-called-with junk--annotate (list 'test))))
+
+(ert-deftest junk-setup-use-package ()
+  (defun junk-pseudo-ensure (_name _ensure _state &optional _no-refresh)
+    t)
+  (defvar use-package-ensure-function)
+
+  (let* ((use-package-ensure-function 'junk-pseudo-ensure))
+
+    (bydi (junk--ensure-advice)
+      (junk-setup-use-package)
+
+      (junk-pseudo-ensure 'test t nil)
+
+      (bydi-was-called junk--ensure-advice)
+      (bydi-clear-mocks)
+
+      (junk-setup-use-package t)
+      (junk-pseudo-ensure 'test t nil)
+
+      (bydi-was-not-called junk--ensure-advice))))
 
 (ert-deftest junk-install ()
   (let ((junk-expansion-packs junk-test-packs))

@@ -52,4 +52,11 @@ If you use =marginalia= you can use the annotation function
 (add-to-list 'marginalia-command-categories '(junk-install . expansion-pack))
 #+end_src
 
+If you use =use-package= (and why wouldn't you), you might want to call
+=junk-setup-use-package=. This will make sure the
+=use-package-ensure-function= is not called for =junk= packages. So even
+if you had set =use-package-always-ensure= to =t=, those packages would
+not be installed (provided the related =junk= form is above the
+=use-package= form).
+
 Please have a look, again, at my [[https://github.com/Walheimat/wal-emacs][configuration]] for usage examples.

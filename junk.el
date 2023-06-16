@@ -143,6 +143,12 @@ Apply MAPPER to packages if set."
   "Stringify PACKAGE-LIST."
   (mapconcat #'symbol-name package-list ", "))
 
+(defun junk--symbolize (symbol?)
+  "Make sure SYMBOL? is a symbol."
+  (if (symbolp symbol?) symbol? (intern symbol?)))
+
+;; Integration
+
 (defun junk--annotate (pack)
   "Annotate PACK."
   (junk--with-parts pack :with-docs t
@@ -153,6 +159,15 @@ Apply MAPPER to packages if set."
         (,(junk--stringify (append packages (mapcar #'car recipes))) :face 'marginalia-value :truncate 0.8)
         (,(junk--stringify extras) :face 'marginalia-value :truncate 0.4))))))
 
+(defun junk--ensure-advice (name ensure _state &optional _no-refresh)
+  "Verify that NAME (or ENSURE) is not a `junk' package."
+  (when-let ((package (or (and (eq ensure t) (junk--symbolize name))
+                     ensure)))
+    (when (consp package)
+      (setq package (car package)))
+
+    (junk--pack-package-p package)))
+
 ;; API
 
 ;;;###autoload
@@ -161,11 +176,28 @@ Apply MAPPER to packages if set."
   (junk--annotate (junk--pack-from-name candidate)))
 
 ;;;###autoload
+(defun junk-setup-use-package (&optional undo)
+  "Set up `use-package'.
+
+Undo that setup if UNDO is t.
+
+This will advise the `use-package-ensure-fuction' using
+combinator `before-until'. If the package to be ensured is a
+`junk' pack package, the package will not be installed."
+  (interactive "P")
+
+  (defvar use-package-ensure-function)
+  (if undo
+      (advice-remove use-package-ensure-function #'junk--ensure-advice)
+    (advice-add use-package-ensure-function :before-until #'junk--ensure-advice)))
+
+;;;###autoload
 (defun junk-install (pack)
   "Install expansion PACK."
   (interactive (list (junk--read-package)))
 
   (junk-install--pack pack))
+
 
 ;;;###autoload
 (cl-defmacro junk-expand (name docs &key packages extras recipes)
