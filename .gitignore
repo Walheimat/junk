@@ -3,3 +3,5 @@
 dist/
 coverage
 *.elc
+
+junk-tasks.org

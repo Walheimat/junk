@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Usage section to README.
 - `junk-setup-use-package` to make sure ensuring does not install
   `junk` pack packages.
+- Helper `junk--read-package` now only returns packs that contain
+  packages, recipes or extras that haven't been installed.
 
 ### Changed
 

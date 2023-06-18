@@ -125,7 +125,7 @@ Returns a list of (PACKAGES EXTRAS RECIPES DOCS)."
 
 (defun junk--read-package ()
   "Read a `junk' package."
-  (let ((name (completing-read "Select pack to install: " junk-expansion-packs)))
+  (let ((name (completing-read "Select pack to install: " (junk--filter-candidates))))
     (junk--pack-from-name name)))
 
 (cl-defun junk--filter (packages &key mapper)
@@ -138,6 +138,15 @@ Apply MAPPER to packages if set."
             (not (package-installed-p (funcall mapper it))))))
 
     (seq-filter not-installed-p packages)))
+
+(defun junk--filter-candidates ()
+  "Filter candidates for completion."
+  (seq-filter (lambda (it)
+                (junk--with-parts it
+                  (not (zerop (length (append (junk--filter packages)
+                                              (junk--filter recipes :mapper #'car)
+                                              (junk--filter extras)))))))
+              junk-expansion-packs))
 
 (defun junk--stringify (package-list)
   "Stringify PACKAGE-LIST."

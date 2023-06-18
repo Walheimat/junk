@@ -135,6 +135,12 @@
     (bydi ((:mock completing-read :return "four"))
       (should-error (junk--read-package)))))
 
+(ert-deftest junk--filter-candidates--returns-with-missing-installs ()
+  (let ((junk-expansion-packs junk-test-packs))
+
+    (bydi ((:mock package-installed-p :with (lambda (it) (memq it '(two twofer)))))
+      (should (eq 2 (length (junk--filter-candidates)))))))
+
 (ert-deftest junk--filter--items-may-be-mapped ()
   (bydi ((:mock package-installed-p :with (lambda (p) (memq p '(test best)))))
 
