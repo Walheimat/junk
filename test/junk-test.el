@@ -148,8 +148,8 @@
                    '((rest "rest"))))))
 
 (ert-deftest junk--stringify ()
-  (should (string-equal (junk--stringify '(one two three)) "one, two, three"))
-  (should (string-empty-p (junk--stringify '()))))
+  (should (string-equal (junk-annotate--stringify '(one two three)) "one, two, three"))
+  (should (string-empty-p (junk-annotate--stringify '()))))
 
 (ert-deftest junk--symbolize ()
   (should (eq 'test (junk--symbolize "test")))
@@ -163,8 +163,8 @@
 (ert-deftest junk--annotate ()
   (let ((junk-expansion-packs '((test :packages (test))))
         (expected '(result ("test" :face 'marginalia-documentation :truncate 0.6)
-                           ("" :face 'marginalia-value :truncate 0.8)
-                           ("" :face 'marginalia-value :truncate 0.4))))
+                           ("" :truncate 0.8)
+                           ("" :truncate 0.4))))
 
     (bydi ((:mock junk--parts :with (lambda (_) '(nil nil nil "test"))))
 

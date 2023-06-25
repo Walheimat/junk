@@ -148,15 +148,30 @@ Apply MAPPER to packages if set."
                                               (junk--filter extras)))))))
               junk-expansion-packs))
 
-(defun junk--stringify (package-list)
-  "Stringify PACKAGE-LIST."
-  (mapconcat #'symbol-name package-list ", "))
-
 (defun junk--symbolize (symbol?)
   "Make sure SYMBOL? is a symbol."
   (if (symbolp symbol?) symbol? (intern symbol?)))
 
 ;; Integration
+
+(defun junk-annotate--face-for-package (package)
+  "Get the face for PACKAGE."
+  (if (package-installed-p package)
+      'marginalia-null
+    'marginalia-value))
+
+(defun junk-annotate--propertize (package)
+  "Propertize PACKAGE."
+  (propertize (symbol-name package) 'face (junk-annotate--face-for-package package)))
+
+(defvar junk-annotate--separator (propertize ", " 'face 'marginalia-null))
+
+(defun junk-annotate--stringify (package-list)
+  "Stringify PACKAGE-LIST."
+  (mapconcat
+   #'junk-annotate--propertize
+   package-list
+   junk-annotate--separator))
 
 (defun junk--annotate (pack)
   "Annotate PACK."
@@ -165,8 +180,8 @@ Apply MAPPER to packages if set."
      (macroexpand
       `(marginalia--fields
         (,docs :face 'marginalia-documentation :truncate 0.6)
-        (,(junk--stringify (append packages (mapcar #'car recipes))) :face 'marginalia-value :truncate 0.8)
-        (,(junk--stringify extras) :face 'marginalia-value :truncate 0.4))))))
+        (,(junk-annotate--stringify (append packages (mapcar #'car recipes))) :truncate 0.8)
+        (,(junk-annotate--stringify extras) :truncate 0.4))))))
 
 (defun junk--ensure-advice (name args _state &optional _no-refresh)
   "Verify that NAME (or package in ARGS) is not a `junk' package."

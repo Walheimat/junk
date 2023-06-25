@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Switched to using new `dinghy` repo as submodule for the Makefile.
+- `junk-annotate` now indicates by face attribute which packages are
+  already installed.
 
 ### Changed
 
