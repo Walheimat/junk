@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `junk` pack packages.
 - Helper `junk--read-package` now only returns packs that contain
   packages, recipes or extras that haven't been installed.
+- `marginalia` annotation now indicates which packages are already
+  installed.
 
 ### Changed
 
