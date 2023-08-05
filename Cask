@@ -7,6 +7,6 @@
  (depends-on "undercover")
  (depends-on "compat"))
 
-(package "junk" "0.1.0" "Package expansion packs")
+(package "junk" "0.2.0" "Package expansion packs")
 
 (package-file "junk.el")

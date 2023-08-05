@@ -6,17 +6,15 @@
 
 ;;; Code:
 
-(require 'bydi nil t)
-
-(declare-function bydi-path-setup "ext:bydi.el")
-(declare-function bydi-ert-runner-setup "ext:bydi.el")
-(declare-function bydi-undercover-setup "ext:bydi.el")
+(require 'bydi)
+(require 'bydi-ci)
+(require 'bydi-report)
 
 ;; Setup
 
-(bydi-path-setup)
-(bydi-undercover-setup (list "junk.el"))
-(bydi-ert-runner-setup)
+(bydi-ci-setup-paths)
+(bydi-report-setup-undercover (list "junk.el"))
+(bydi-report-setup-ert-runner)
 
 ;;; test-helper.el ends here
 
