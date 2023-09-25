@@ -1,7 +1,7 @@
-# Build fragments
-.cask/
-dist/
-coverage
 *.elc
-
-junk-tasks.org
+.cask/
+.dir-locals.el
+coverage
+dist/
+junk-autoloads.el
+junk-pkg.el
