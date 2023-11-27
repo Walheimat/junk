@@ -1,7 +1,7 @@
 ;;; junk.el --- Package expansion packs -*- lexical-binding: t; -*-
 
 ;; Author: Krister Schuchardt <krister.schuchardt@gmail.com>
-;; Homepage: https://github.com/Walheimat/partial-recall
+;; Homepage: https://github.com/Walheimat/junk
 ;; Version: 0.2.0
 ;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: extensions
