@@ -19,7 +19,6 @@
         (junk--parts test)
       (message docs))))
 
-
 ;; Installing
 
 (defvar junk-test-packs
@@ -56,18 +55,21 @@
 
     (bydi ((:ignore package-installed-p)
            (:always package-install))
-      (ert-with-message-capture messages
-        (junk-install--pack (car junk-test-packs))
-        (should (string-equal messages "Installed ’one’.\n"))))))
+
+      (shut-up
+        (ert-with-message-capture messages
+          (junk-install--pack (car junk-test-packs))
+          (should (string-equal messages "Installed ’one’.\n")))))))
 
 
 (ert-deftest junk-install--pack--installed-already ()
   (let ((junk-expansion-packs junk-test-packs))
 
     (bydi ((package-installed-p . #'always))
-      (ert-with-message-capture messages
-        (junk-install--pack (car junk-test-packs))
-        (should (string-equal messages "Package ’one’ is already installed.\n"))))))
+      (shut-up
+        (ert-with-message-capture messages
+          (junk-install--pack (car junk-test-packs))
+          (should (string-equal messages "Package ’one’ is already installed.\n")))))))
 
 (ert-deftest junk-install--recipe ()
   (bydi (package-vc-install package--update-selected-packages)
@@ -90,15 +92,16 @@
            (:always package-install)
            (:mock completing-read :return selection))
 
-      (ert-with-message-capture messages
-        (junk-install--extras extras)
-        (should (string-equal messages "Installed all extras.\n"))
+      (shut-up
+        (ert-with-message-capture messages
+          (junk-install--extras extras)
+          (should (string-equal messages "Installed all extras.\n"))
 
-        (setq messages nil)
-        (setq selection 'twofer)
-        (junk-install--extras extras)
+          (setq messages nil)
+          (setq selection 'twofer)
+          (junk-install--extras extras)
 
-        (should (string-equal messages "Installed extra ’twofer’.\n"))))))
+          (should (string-equal messages "Installed extra ’twofer’.\n")))))))
 
 (ert-deftest junk-install--with-extras ()
   (let ((junk-expansion-packs junk-test-packs))
@@ -108,9 +111,10 @@
            (package-install . #'always)
            (yes-or-no-p . #'ignore))
 
-      (ert-with-message-capture messages
-        (call-interactively 'junk-install)
-        (should (string-equal messages "Installed ’two’.\n"))))))
+      (shut-up
+        (ert-with-message-capture messages
+          (call-interactively 'junk-install)
+          (should (string-equal messages "Installed ’two’.\n")))))))
 
 (ert-deftest junk-install--errors-for-non-existing ()
   (let ((junk-expansion-packs junk-test-packs))
