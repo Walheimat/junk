@@ -25,19 +25,14 @@ Individual languages build this list using macro `junk'.")
 
 ;; Macros
 
-(cl-defmacro junk--with-parts (item &rest body &key with-docs &allow-other-keys)
+(cl-defmacro junk--with-parts (item (&key with-docs &allow-other-keys) &rest body)
   "Execute BODY with an ITEM's junk parts bound.
 
 Also bind docs if WITH-DOCS is t."
   (declare (indent defun))
 
   `(cl-destructuring-bind (packages extras recipes ,(if with-docs 'docs '_docs)) (junk--parts ,item)
-     ,@(delq nil
-             (cl-loop for (key val)
-                      on body by 'cddr
-                      unless (memq key '(:with-docs))
-                      collect key
-                      and collect val))))
+     ,@body))
 
 ;; Installation
 
@@ -56,7 +51,7 @@ Uses `package-install' unless custom INSTALLER is provided."
 
 (defun junk-install--pack (pack)
   "Install expansion PACK."
-  (junk--with-parts pack
+  (junk--with-parts pack nil
     (let ((name (symbol-name (car pack)))
           (normal (junk--filter packages))
           (from-recipe (junk--filter recipes :mapper #'car)))
@@ -142,7 +137,7 @@ Apply MAPPER to packages if set."
 (defun junk--filter-candidates ()
   "Filter candidates for completion."
   (seq-filter (lambda (it)
-                (junk--with-parts it
+                (junk--with-parts it nil
                   (not (zerop (length (append (junk--filter packages)
                                               (junk--filter recipes :mapper #'car)
                                               (junk--filter extras)))))))
@@ -175,7 +170,7 @@ Apply MAPPER to packages if set."
 
 (defun junk--annotate (pack)
   "Annotate PACK."
-  (junk--with-parts pack :with-docs t
+  (junk--with-parts pack (:with-docs t)
     (eval
      (macroexpand
       `(marginalia--fields

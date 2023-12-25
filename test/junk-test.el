@@ -12,7 +12,7 @@
 
 (ert-deftest junk--with-parts ()
   (bydi-match-expansion
-   (junk--with-parts test :with-docs t
+   (junk--with-parts test (:with-docs t)
      (message docs))
    '(cl-destructuring-bind
         (packages extras recipes docs)
