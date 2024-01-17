@@ -112,11 +112,15 @@ Returns a list of (PACKAGES EXTRAS RECIPES DOCS)."
   "Check if PACK is an expansion pack package."
   (memq pack (junk--packages)))
 
-(defun junk--pack-from-name (name)
-  "Get pack named NAME."
+(defun junk--pack-from-name (name &optional no-error)
+  "Get pack named NAME.
+
+If NO-ERROR is t, don't signal an error if the pack can't be
+found."
   (if-let ((pack (assoc (intern-soft name) junk-expansion-packs)))
       pack
-    (user-error "Unknown pack '%s', check `junk-expansion-packs'" pack)))
+    (and (not no-error)
+         (user-error "Unknown pack '%s', check `junk-expansion-packs'" pack))))
 
 (defun junk--read-package ()
   "Read a `junk' package."
@@ -193,7 +197,9 @@ Apply MAPPER to packages if set."
 ;;;###autoload
 (defun junk-annotate (candidate)
   "Annotate CANDIDATE expansion pack for `marginalia'."
-  (junk--annotate (junk--pack-from-name candidate)))
+  (when-let ((annotation (junk--pack-from-name candidate t)))
+
+    (junk--annotate annotation)))
 
 ;;;###autoload
 (defun junk-setup-use-package (&optional undo)
