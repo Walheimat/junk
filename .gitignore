@@ -5,3 +5,4 @@ coverage
 dist/
 junk-autoloads.el
 junk-pkg.el
+node_modules/
